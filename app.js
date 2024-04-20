@@ -42,6 +42,7 @@ const readData = () => {
 };
 
 // readData();
+//*-----------------------------------------------------//
 
 ///Data Cleaning
 const cleanedData = [];
@@ -56,16 +57,17 @@ const dataClean = () => {
         row.clicks = row.clicks ? parseInt(row.clicks, 10) : 0;
         row.cost = row.cost ? parseFloat(row.cost) : 0.0;
 
+        // Safe Date formatting
+        if (row.date) {
+          row.date = moment(row.date, "MM/DD/YYYY").format("YYYY-MM-DD");
+        }
+
+        // Validation to ensure all critical data is correct before cleaning
         if (!_.isEmpty(row) && row.impressions >= 0 && row.cost >= 0) {
           cleanedData.push(row);
         }
       } catch (error) {
         console.error("Error processing row:", error);
-      }
-
-      // Convert date fields to a standard format
-      if (row.date) {
-        row.date = moment(row.date, "MM/DD/YYYY").format("YYYY-MM-DD");
       }
     })
     .on("end", () => {
