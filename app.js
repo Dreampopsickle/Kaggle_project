@@ -50,23 +50,22 @@ const dataClean = () => {
   fs.createReadStream(tikTokCSV)
     .pipe(csv())
     .on("data", (row) => {
-      // Convert date fields to a standard format
-      if (row.date) {
-        row.date = moment(row.date, "MM/DD/YYY").format("YYYY-MM-DD");
+      try {
+        // Safe parsing with error handling
+        row.impressions = row.impressions ? parseInt(row.impressions, 10) : 0;
+        row.clicks = row.clicks ? parseInt(row.clicks, 10) : 0;
+        row.cost = row.cost ? parseFloat(row.cost) : 0.0;
+
+        if (!_.isEmpty(row) && row.impressions >= 0 && row.cost >= 0) {
+          cleanedData.push(row);
+        }
+      } catch (error) {
+        console.error("Error processing row:", error);
       }
 
-      // Handle missing values, replace them with defaults or remove
-      row.impressions = row.impressions ? parseInt(row.impressions) : 0;
-      row.clicks = row.clicks ? parseInt(row.clicks) : 0;
-      row.cost = row.cost ? parseFloat(row.coast) : 0.0;
-
-      // Filter out incomplete or erroneous records
-      if (
-        !_.isEmpty(row) &&
-        row.impressions !== undefined &&
-        row.cost !== undefined
-      ) {
-        cleanedData.push(row);
+      // Convert date fields to a standard format
+      if (row.date) {
+        row.date = moment(row.date, "MM/DD/YYYY").format("YYYY-MM-DD");
       }
     })
     .on("end", () => {
