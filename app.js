@@ -75,7 +75,7 @@ const dataClean = () => {
         cleanedData.length
       );
       // Save the cleaned data
-      const file = "/mnt/data/cleaned_tiktok_data.json";
+      const file = "./data/cleaned_tiktok_data.json";
       jsonfile.writeFile(file, cleanedData, { spaces: 2 }, function (err) {
         if (err) console.error(err);
       });
