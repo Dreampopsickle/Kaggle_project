@@ -5,6 +5,7 @@ const csv = require("csv-parser");
 const moment = require("moment");
 const _ = require("lodash");
 const jsonfile = require("jsonfile");
+const file = "./data/cleaned_tiktok_data.json";
 /*----------------------------------------*/
 
 //To download kaggle data set
@@ -40,8 +41,21 @@ const readData = () => {
       console.log("Total rows read:", results.length);
     });
 };
+const displayColumnTitles = () => {
+  const stream = fs
+    .createReadStream(tikTokCSV)
+    .pipe(csv())
+    .on("headers", (headers) => {
+      console.log("Column Titles:", headers);
+    })
+    .on("data", () => {
+      stream.destroy();
+    });
+};
 
 // readData();
+// displayColumnTitles();
+
 //*-----------------------------------------------------//
 
 ///Data Cleaning
@@ -52,20 +66,16 @@ const dataClean = () => {
     .pipe(csv())
     .on("data", (row) => {
       try {
-        // Safe parsing with error handling
-        row.impressions = row.impressions ? parseInt(row.impressions, 10) : 0;
-        row.clicks = row.clicks ? parseInt(row.clicks, 10) : 0;
-        row.cost = row.cost ? parseFloat(row.cost) : 0.0;
+        // Clean numeric fields
+        row.video_view_count = parseInt(row.video_view_count, 10) || 0;
+        row.video_like_count = parseInt(row.video_like_count, 10) || 0;
 
-        // Safe Date formatting
-        if (row.date) {
-          row.date = moment(row.date, "MM/DD/YYYY").format("YYYY-MM-DD");
-        }
+        // Standardize boolean fields
+        row.verified_status = row.verified_status === "true" ? true : false;
+        row.author_ban_status = row.author_ban_status === "true" ? true : false;
 
-        // Validation to ensure all critical data is correct before cleaning
-        if (!_.isEmpty(row) && row.impressions >= 0 && row.cost >= 0) {
-          cleanedData.push(row);
-        }
+        // Push cleaned row to new data array
+        cleanedData.push(row);
       } catch (error) {
         console.error("Error processing row:", error);
       }
@@ -76,11 +86,47 @@ const dataClean = () => {
         cleanedData.length
       );
       // Save the cleaned data
-      const file = "./data/cleaned_tiktok_data.json";
       jsonfile.writeFile(file, cleanedData, { spaces: 2 }, function (err) {
         if (err) console.error(err);
+        else console.log("Data cleaning complete.");
       });
     });
 };
 
 dataClean();
+
+//*-----------------------------------------------------*//
+//Data Analysis
+
+const analyzeTikTokData = () => {
+  jsonfile.readFile(file, function (err, data) {
+    if (err) console.error(err);
+    else analyzeData(data);
+  });
+
+  const analyzeData = (data) => {
+    const totalImpressions = data.reduce(
+      (acc, cur) => acc + cur.impressions,
+      0
+    );
+    const totalClicks = data.reduce((acc, cur) => acc + cur.clicks, 0);
+    const totalCost = data.reduce((acc, cur) => acc + cur.cost, 0);
+    const totalConversions = data.reduce(
+      (acc, cur) => acc + cur.conversions,
+      0
+    );
+
+    const ctr = (totalClicks / totalImpressions) * 100;
+    const cpc = totalCost / totalClicks;
+    const conversionRate = (totalConversions / totalClicks) * 100;
+
+    console.log(`Total Impressions: ${totalImpressions}`);
+    console.log(`Total Clicks: ${totalClicks}`);
+    console.log(`CTR: ${ctr.toFixed(2)}%`);
+    console.log(`Average Cost: $${(totalCost / data.length).toFixed(2)}`);
+    console.log(`CPC: $${cpc.toFixed(2)}`);
+    console.log(`Conversion Rate: ${conversionRate.toFixed(2)}%`);
+  };
+};
+
+// analyzeTikTokData();
