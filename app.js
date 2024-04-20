@@ -93,40 +93,58 @@ const dataClean = () => {
     });
 };
 
-dataClean();
+// dataClean();
 
 //*-----------------------------------------------------*//
 //Data Analysis
 
 const analyzeTikTokData = () => {
   jsonfile.readFile(file, function (err, data) {
-    if (err) console.error(err);
-    else analyzeData(data);
+    if (err) {
+      console.error(err);
+    } else {
+      analyzeViewsAndLikes(data);
+      analyzeEngagement(data);
+    }
   });
+  // Calculate total views and average likes
+  const analyzeViewsAndLikes = (data) => {
+    const totalViews = data.reduce((acc, cur) => acc + cur.video_view_count, 0);
+    const averageLikes =
+      data.length > 0
+        ? data.reduce((acc, cur) => acc + cur.video_like_count, 0) / data.length
+        : 0;
 
-  const analyzeData = (data) => {
-    const totalImpressions = data.reduce(
-      (acc, cur) => acc + cur.impressions,
+    console.log(`Total Views: ${totalViews}`);
+    console.log(`Average Likes per Video: ${averageLikes.toFixed(2)}`);
+  };
+  const analyzeEngagement = (data) => {
+    const engagementScores = data.map((video) => {
+      const views = parseInt(video.video_view_count, 10);
+      if (views > 0) {
+        // only calculate scores if there are views
+        const likes = parseInt(video.video_like_count, 10) || 0;
+        const shares = parseInt(video.video_share_count, 10) || 0;
+        const comments = parseInt(video.video_comment_count, 10) || 0;
+        return (likes + shares + comments) / views; // Normalize by views
+      }
+
+      return 0; // Return an engagement score of 0 if no views
+    });
+
+    const totalEngagementScore = engagementScores.reduce(
+      (acc, cur) => acc + cur,
       0
     );
-    const totalClicks = data.reduce((acc, cur) => acc + cur.clicks, 0);
-    const totalCost = data.reduce((acc, cur) => acc + cur.cost, 0);
-    const totalConversions = data.reduce(
-      (acc, cur) => acc + cur.conversions,
-      0
+    const averageEngagementScore =
+      engagementScores.length > 0
+        ? totalEngagementScore / engagementScores.length
+        : 0;
+
+    console.log(
+      `Average Engagement Score: ${averageEngagementScore.toFixed(4)}`
     );
-
-    const ctr = (totalClicks / totalImpressions) * 100;
-    const cpc = totalCost / totalClicks;
-    const conversionRate = (totalConversions / totalClicks) * 100;
-
-    console.log(`Total Impressions: ${totalImpressions}`);
-    console.log(`Total Clicks: ${totalClicks}`);
-    console.log(`CTR: ${ctr.toFixed(2)}%`);
-    console.log(`Average Cost: $${(totalCost / data.length).toFixed(2)}`);
-    console.log(`CPC: $${cpc.toFixed(2)}`);
-    console.log(`Conversion Rate: ${conversionRate.toFixed(2)}%`);
   };
 };
 
-// analyzeTikTokData();
+analyzeTikTokData();
